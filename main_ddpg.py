@@ -12,6 +12,11 @@
 import gym
 import numpy as np
 import random
+import os
+import time
+import torch
+
+from agent_ddpg import DDPG_Agent
 
 # hyperparameters
 EPISODE_NUM = 100
@@ -43,7 +48,7 @@ for episode_i in range(EPISODE_NUM):
         if random_sample < epsilon:
             action = np.random.uniform(low = -2, high = 2, size = ACTION_DIM)
         else:
-            action = agent.get_action(state)
+            action = agent.get_action(state) # todo - done
 
         next_state, reward, done, truncation, info = env.step(action) # truncation: end episode before done (because of some limits)
 
@@ -54,7 +59,7 @@ for episode_i in range(EPISODE_NUM):
 
         # sample a minibatch dataset from all transitions
         # TD-Learning
-        agent.update() # todo: do learning progress in agent (update A/C network)
+        agent.update() # todo: do learning progress in agent (update A/C network) - done
 
         # if done
         if done:
@@ -62,6 +67,14 @@ for episode_i in range(EPISODE_NUM):
 
     REWARD_BUFFET[episode_i] = episode_reward
     print( f"Episode: {episode_i+1}, Reward: {round(episode_reward, 2)}")
+
+# get current path
+current_path = os.path.dirname(os.path.realpath(__file__))
+model = current_path + '/models/'
+timestamp =time.strftime("%Y%m%d-%H%M%S")
+# save models
+torch.save(agent.actor.state_dict(), model + f'ddpg_actor_{timestamp}.pth')
+torch.save(agent.critic.state_dict(), model + f'ddpg_critic_{timestamp}.pth')
 
 env.close()
 
