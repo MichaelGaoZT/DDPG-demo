@@ -59,7 +59,7 @@ for episode_i in range(EPISODE_NUM):
 
         # sample a minibatch dataset from all transitions
         # TD-Learning
-        agent.update() # todo: do learning progress in agent (update A/C network) - done
+        agent.update(state, action, reward, next_state) # todo: do learning progress in agent (update A/C network) - done
 
         # if done
         if done:

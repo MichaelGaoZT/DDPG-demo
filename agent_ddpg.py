@@ -17,7 +17,7 @@ import torch.optim as optim
 from collections import deque # 一个双向队列，支持各种类型，常用于存储memory
 
 # set device
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cup")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("device type is: ", device)
 
 # hyperparameters
@@ -86,18 +86,18 @@ class DDPG_Agent:
         # init actor
         self.actor = Actor(state_dim, action_dim).to(device)
         self.actor_target = Actor(state_dim, action_dim).to(device)
-        self.actor_target.load_state_dict(self.actor.state_dict()).to(device) # while initiating, actor_target=actor
+        self.actor_target.load_state_dict(self.actor.state_dict()) # while initiating, actor_target=actor
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
 
         # init critic
         self.critic = Critic(state_dim, action_dim).to(device)
         self.critic_target = Critic(state_dim, action_dim).to(device)
-        self.critic_target.load_state_dict(self.critic.state_dict()).to(device) # while initiating, actor_target=actor
-        selfactorc_optimizer = optim.Adam(self.critic.parameters(), lr=LR_ACTOR)
+        self.critic_target.load_state_dict(self.critic.state_dict())# while initiating, actor_target=actor
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_ACTOR)
 
         self.replay_buffer = ReplayBuffer(MEMORY_CAPACITY)
     def get_action(self, state):
-        state = torch.FloatTensor(state).upsqueeze(0) # (n,)->(1,3)
+        state = torch.FloatTensor(state).unsqueeze(0) # (n,)->(1,3)
         action = self.actor(state)
         return action.detach().cpu().numpy()[0] # numpy 转入cpu效率较高
 
