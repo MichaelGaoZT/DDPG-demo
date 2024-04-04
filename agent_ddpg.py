@@ -24,7 +24,7 @@ print("device type is: ", device)
 LR_ACTOR = 1e-4
 LR_CRITIC = 1e-3
 GAMMA = 0.99
-MEMORY_CAPACITY = 10000
+MEMORY_CAPACITY = 100000
 BATCH_SIZE = 64
 TAU = 5e-3
 
@@ -46,7 +46,7 @@ class Actor(nn.Module):
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        x = torch.tanh(self.fc3(x))*2 # tanh belongs [-1,1], *2 belongs [-2,2]
+        x = torch.tanh(self.fc3(x)) * 2 # tanh belongs [-1,1], *2 belongs [-2,2]
         return x
 
 class Critic(nn.Module):
@@ -59,9 +59,8 @@ class Critic(nn.Module):
     def forward(self, x, a):
         x = torch.cat([x, a] ,1)
         x = torch.relu(self.fc1(x))
-        x = torch.tanh(self.fc2(x))*2 # tanh belongs [-1,1], *2 belongs [-2,2]
-        x = self.fc3(x)
-        return x
+        x = torch.relu(self.fc2(x)) # tanh belongs [-1,1], *2 belongs [-2,2]
+        return self.fc3(x)
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -93,7 +92,7 @@ class DDPG_Agent:
         self.critic = Critic(state_dim, action_dim).to(device)
         self.critic_target = Critic(state_dim, action_dim).to(device)
         self.critic_target.load_state_dict(self.critic.state_dict())# while initiating, actor_target=actor
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_ACTOR)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
 
         self.replay_buffer = ReplayBuffer(MEMORY_CAPACITY)
     def get_action(self, state):
@@ -101,17 +100,17 @@ class DDPG_Agent:
         action = self.actor(state)
         return action.detach().cpu().numpy()[0] # numpy 转入cpu效率较高
 
-    def update(self, state, action, reward, next_state):
+    def update(self):
         if len(self.replay_buffer) < BATCH_SIZE: # skip
             return
 
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(BATCH_SIZE)
         # to tensor
         states = torch.FloatTensor(states).to(device)
-        actions = torch.FloatTensor(actions).to(device)
-        rewards = torch.FloatTensor(rewards).to(device)
+        actions = torch.FloatTensor(np.vstack(actions)).to(device)
+        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(device)
         next_states = torch.FloatTensor(next_states).to(device)
-        dones = torch.FloatTensor(dones).to(device)
+        dones = torch.FloatTensor(dones).unsqueeze(1).to(device)
 
         # update critic
         next_actions = self.actor_target(next_states)
